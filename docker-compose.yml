@@ -1,0 +1,46 @@
+services:
+  spark-master:
+    image: apache/spark:4.0.1
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - "9090:8080"  # UI del master -> localhost:9090
+      - "7077:7077"  # RPC para workers
+    networks:
+      - sparknet
+    # 🔹 Montamos las carpetas locales al contenedor
+    volumes:
+      - ./app:/app
+      - ./data:/data
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
+
+  spark-worker-1:
+    image: apache/spark:4.0.1
+    container_name: spark-worker-1
+    environment:
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    depends_on:
+      - spark-master
+    networks:
+      - sparknet
+    volumes:
+      - ./data:/data
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+
+  spark-worker-2:
+    image: apache/spark:4.0.1
+    container_name: spark-worker-2
+    environment:
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    depends_on:
+      - spark-master
+    networks:
+      - sparknet
+    volumes:
+      - ./data:/data
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+
+networks:
+  sparknet:
+    driver: bridge
